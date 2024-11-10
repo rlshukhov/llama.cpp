@@ -21542,6 +21542,9 @@ static int32_t llama_chat_apply_template_internal(
     auto tmpl_contains = [&tmpl](std::string haystack) -> bool {
         return tmpl.find(haystack) != std::string::npos;
     };
+    auto tmpl_not_contains = [&tmpl](std::string haystack) -> bool {
+        return tmpl.find(haystack) == std::string::npos;
+    };
     if (tmpl == "chatml" || tmpl_contains("<|im_start|>")) {
         // chatml template
         for (auto message : chat) {
@@ -21717,11 +21720,20 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>";
         }
-    } else if (tmpl == "llama3" || (tmpl_contains("<|start_header_id|>") && tmpl_contains("<|end_header_id|>"))) {
+    } else if (tmpl == "llama3" || (tmpl_contains("<|start_header_id|>") && tmpl_contains("<|end_header_id|>") && tmpl_not_contains("<|eot_id|>"))) {
         // Llama 3
         for (auto message : chat) {
             std::string role(message->role);
             ss << "<|start_header_id|>" << role << "<|end_header_id|>\n\n" << trim(message->content) << "<|eot_id|>";
+        }
+        if (add_ass) {
+            ss << "<|start_header_id|>assistant<|end_header_id|>\n\n";
+        }
+    } else if (tmpl == "vikhr-nemo") {
+        // https://huggingface.co/Vikhrmodels/Vikhr-Nemo-12B-Instruct-R-21-09-24/blob/main/tokenizer_config.json#L8028
+        for (auto message : chat) {
+            std::string role(message->role);
+            ss << "<|start_header_id|>" << role << "<|end_header_id|>\n\n" << trim(message->content) << "</s>";
         }
         if (add_ass) {
             ss << "<|start_header_id|>assistant<|end_header_id|>\n\n";
